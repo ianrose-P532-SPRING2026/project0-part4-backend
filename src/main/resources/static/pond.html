@@ -26,27 +26,53 @@
     </style>
 </head>
 <body>
-    <div class="card">
-        <img src="http://localhost:8080/ducks/1/image" alt="Avatar" style="width: 100%">
-        <div class="container">
-            <h4><b>1</b></h4>
-            <p>Mallard</p>
-        </div>
-    </div>
+    <div id="pond"></div>
 
-    <div class="card">
-        <img src="http://localhost:8080/ducks/2/image" alt="Avatar" style="width: 100%">
-        <div class="container">
-            <h4><b>2</b></h4>
-            <p>Mallard</p>
-        </div>
-    </div>
+    <script>
+        async function getAllDucks() {
+            let host = "http://localhost:8080";
+            let response = await fetch(host + "/ducks");
+            return await response.json();
+        }
 
-    <div class="card">
-        <img src="http://localhost:8080/ducks/3/image" alt="Avatar" style="width: 100%">
-        <div class="container">
-            <h4><b>3</b></h4>
-            <p>Redhead</p>
-        </div>
-    </div>
+        function createCard(duck) {
+            let card = document.createElement("div");
+            card.className = "card";
+
+            let img = document.createElement("img");
+            img.src = `http://localhost:8080/ducks/${duck.id}/image`;
+            img.alt = duck.type;
+            img.style.width = "100%";
+
+            let container = document.createElement("div");
+            container.className = "container";
+
+            let title = document.createElement("h4");
+            let bold = document.createElement("b");
+            bold.textContent = duck.id;
+            title.appendChild(bold);
+
+            let type = document.createElement("p");
+            type.textContent = duck.type;
+
+            container.appendChild(title);
+            container.appendChild(type);
+
+            card.appendChild(img);
+            card.appendChild(container);
+
+            return card;
+        }
+
+        async function loadPond() {
+            let pond = document.getElementById("pond");
+            let ducks = await getAllDucks();
+
+            for (let duck of ducks) {
+                let card = createCard(duck);
+                pond.appendChild(card);
+            }
+        }
+        window.onload = loadPond;
+    </script>
 </body>
