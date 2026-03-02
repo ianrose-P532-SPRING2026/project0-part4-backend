@@ -1,7 +1,9 @@
 package edu.iu.habahram.ducksservice.controllers;
 
 import edu.iu.habahram.ducksservice.model.DuckData;
-import edu.iu.habahram.ducksservice.repository.DuckRepository;
+import edu.iu.habahram.ducksservice.model.Duck;
+import edu.iu.habahram.ducksservice.repository.DucksRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,59 +11,94 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @CrossOrigin
 @RequestMapping("/ducks")
 public class DuckController {
-    private final DuckRepository duckRepository;
-    public DuckController(DuckRepository duckRepository) {
-        this.duckRepository = duckRepository;
+    private DucksRepository ducksRepository;
+    public DuckController(DucksRepository ducksRepository) {
+        this.ducksRepository = ducksRepository;
     }
 
     @PostMapping
-    public Integer add(@RequestBody DuckData duck) {
-       DuckData saved = duckRepository.save(duck);
-       return saved.getId();
+    public int add(@RequestBody DuckData duck) {
+       try {
+           return ducksRepository.add(duck);
+       } catch (IOException e) {
+           throw new RuntimeException(e);
+       }
     }
 
     @GetMapping
     public List<DuckData> findAll() {
-       return duckRepository.findAll();
+        try {
+            return ducksRepository.findAll();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DuckData> find(@PathVariable Integer id) {
-        Optional<DuckData> duck = duckRepository.findById(id);
-        return duck.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<DuckData> find(@PathVariable int id) {
+        try {
+            DuckData duck = ducksRepository.find(id);
+            if(duck != null) {
+                return ResponseEntity
+                        .status(HttpStatus.FOUND)
+                        .body(duck);
+            } else {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(null);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @PostMapping("/{id}/image")
-    public ResponseEntity<?> updateImage(@PathVariable Integer id,
-                                         @RequestParam MultipartFile file)
-            throws IOException {
-
-        Optional<DuckData> optional = duckRepository.findById(id);
-        if (optional.isEmpty()) {
-            return ResponseEntity.notFound().build();
+    public boolean updateImage(@PathVariable int id,
+                               @RequestParam MultipartFile file) {
+        try {
+            return ducksRepository.updateImage(id, file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
 
-        DuckData duck = optional.get();
-        duck.setImage(file.getBytes());
-        duckRepository.save(duck);
-
-        return ResponseEntity.ok().build();
+    @PostMapping("/{id}/audio")
+    public boolean updateAudio(@PathVariable int id,
+                               @RequestParam MultipartFile file) {
+        try {
+            return ducksRepository.updateAudio(id, file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @GetMapping("/{id}/image")
-    public ResponseEntity<byte[]> getImage(@PathVariable Integer id) {
-        return duckRepository.findById(id)
-                .filter(d -> d.getImage() != null)
-                .map(d -> ResponseEntity.ok()
-                        .contentType(MediaType.IMAGE_PNG)
-                        .body(d.getImage()))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getImage(@PathVariable int id) {
+        try {
+            byte[] image = ducksRepository.getImage(id);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .contentType(MediaType.IMAGE_PNG)
+                    .body(image);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
+
+    @GetMapping("/{id}/audio")
+    public ResponseEntity<?> getAudio(@PathVariable int id) {
+        try {
+            byte[] image = ducksRepository.getAudio(id);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .contentType(MediaType.valueOf("audio/mp3"))
+                    .body(image);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
